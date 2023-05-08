@@ -26,7 +26,7 @@ namespace AltaiTehAs_bot.DAL
         public async Task CreateUser(User user)
         {
             string query = "insert into USERS values(@UserId, @Name, @Phone)";
-
+ 
             using (IDbConnection db = new SqliteConnection(_connectionString))
                 await db.ExecuteAsync(query, user);
         }

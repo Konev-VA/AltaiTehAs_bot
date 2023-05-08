@@ -45,7 +45,16 @@ namespace AltaiTehAs_bot
             string query = "update repairs set TechType = @TechType, Description = @Description WHERE Id = @Id";
 
             using (IDbConnection db = new SqliteConnection(_connectionString))
-                await db.ExecuteAsync(query, new {repair.TechType, repair.Description, repair.Id });
+                await db.ExecuteAsync(query, new { repair.TechType, repair.Description, repair.Id });
+        }
+
+        public async Task<IEnumerable<Repair>> GetRepairs()
+        {
+            string query = "select * from repairs";
+
+            using IDbConnection db = new SqliteConnection(_connectionString);
+
+            return await db.QueryAsync<Repair>(query);
         }
     }
 }
