@@ -7,6 +7,8 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.Xml.Xsl;
+using Newtonsoft.Json.Serialization;
 
 namespace AltaiTehAs_bot
 {
@@ -59,13 +61,46 @@ namespace AltaiTehAs_bot
                     return;
                 }
 
+                if (message.From.Id == 325536109 && message.Text.ToLower().Equals("заявки"))
+                {
+                    var consultations = await new ConsultationDAL().GetConsultations();
+
+                    var repairs = await new RepairDal().GetRepairs();
+
+                    string result = "";
+
+                    result += "Консультации: ";
+
+                    foreach (var consultation in consultations)
+                    {
+                        var user = await new UserDAL().GetUserById(consultation.UserId);
+
+                        result += "\n\n";
+                        result += $"{consultation.Question}. \n({user.Phone} - {user.Name})";
+                    }
+
+                    result += "\n\n\nРемонт: ";
+
+                    foreach (var repair in repairs)
+                    {
+                        var user = await new UserDAL().GetUserById(repair.UserId);
+
+                        result += "\n\n";
+                        result += $"Тип техники: {repair.TechType}. \nСуть обращения: {repair.Description}. \n({user.Phone} - {user.Name})";
+                    }
+
+                    await botClient.SendTextMessageAsync(message.Chat, result);
+                }
+
                 if (message.Type == MessageType.Contact)
                 {
                     var contact = message.Contact;
 
                     var userDAL = new UserDAL();
 
-                    if (await userDAL.GetUserById((long)contact.UserId) != null)
+                    var curUser = await userDAL.GetUserById((long)contact.UserId);
+
+                    if (curUser != null)
                     {
                         outMessage = await botClient.SendTextMessageAsync(message.Chat, "Ваш номер нам уже известен", replyMarkup: new ReplyKeyboardRemove());
                     }
@@ -80,10 +115,30 @@ namespace AltaiTehAs_bot
 
                         outMessage = await botClient.SendTextMessageAsync(message.Chat, "Спасибо, что оставили ваши контакты. \r\nВ ближайшее время с вами свяжется специалист для подробной консультации", replyMarkup: new ReplyKeyboardRemove());
                     }
+
+                    var lastCons = await new ConsultationDAL().GetLastConsultation(message.From.Id);
+
+                    var lastRepair = await new RepairDal().GetLastRepair(message.From.Id);
+
+                    if (lastCons.CreationDate > lastRepair.CreationDate)
+                    {
+                        await NotifyConsultation(lastCons, botClient);
+                        return;
+                    }
+
+                    if (lastCons.CreationDate < lastRepair.CreationDate)
+                    {
+                        await NotifyRepair(lastRepair, botClient);
+                        return;
+                    }
+
+
+                    await NotifyRepair(lastRepair, botClient);
+                    await NotifyConsultation(lastCons, botClient);
+                    return;
                 }
 
                 var lastMessage = await new MessageDAL().GetMyMessageById(message.MessageId - 1, message.From.Id);
-
 
                 if (lastMessage != null && lastMessage.Text != null)
                 {
@@ -100,7 +155,10 @@ namespace AltaiTehAs_bot
 
                         outMessage = await HandleUserAsync(message, botClient);
 
-                        //await NotifyConsultation(consultation, botClient);
+                        if (outMessage.Text.Contains("контакт"))
+                            return;
+
+                        await NotifyConsultation(consultation, botClient);
                     }
 
                     if (lastMessage.Text.Contains("техники"))
@@ -110,6 +168,7 @@ namespace AltaiTehAs_bot
                         var repair = await repairDAL.GetLastRepair(message.From.Id);
 
                         repair.TechType = message.Text;
+
 
                         await repairDAL.UpdateRepair(repair);
 
@@ -127,6 +186,9 @@ namespace AltaiTehAs_bot
                         await repairDAL.UpdateRepair(repair);
 
                         outMessage = await HandleUserAsync(message, botClient);
+
+                        if (outMessage.Text.Contains("контакт"))
+                            return;
 
                         await NotifyRepair(repair, botClient);
                     }
@@ -233,7 +295,7 @@ namespace AltaiTehAs_bot
 
             var user = await userDAL.GetUserById(repair.UserId);
 
-            await botClient.SendTextMessageAsync(831058266, $"Появилась новая заявка на ремонт. \r\nВид техники: {repair.TechType}\r\nСуть заявки: {repair.Description}\r\nКонтакты: {user.Phone} ({user.Name})");
+            await botClient.SendTextMessageAsync(325536109, $"Появилась новая заявка на ремонт. \r\nВид техники: {repair.TechType}\r\nСуть заявки: {repair.Description}\r\nКонтакты: {(user == null ? "не предоставлены" : $"{user.Phone} ({user.Name})")}");
 
             var smtpClient = new SmtpClient("smtp.gmail.com")
             {
@@ -246,9 +308,9 @@ namespace AltaiTehAs_bot
 
             smtpClient.Send(
                 from: "altaitehas@gmail.com",
-                recipients: " makogon678@mail.ru",
+                recipients: "makogon678@mail.ru",
                 subject: "Новая заявка",
-                body: $"Появилась новая заявка на ремонт. \r\nВид техники: {repair.TechType}\r\nСуть заявки: {repair.Description}\r\nКонтакты: {user.Phone} ({user.Name})") ;
+                body: $"Появилась новая заявка на ремонт. \r\nВид техники: {repair.TechType}\r\nСуть заявки: {repair.Description}\r\nКонтакты: {(user == null ? "не предоставлены" : $"{user.Phone} ({user.Name})")}");
         }
 
         private async Task NotifyConsultation(Consultation consultation, ITelegramBotClient botClient)
@@ -257,7 +319,7 @@ namespace AltaiTehAs_bot
 
             var user = await userDAL.GetUserById(consultation.UserId);
 
-            await botClient.SendTextMessageAsync(831058266, $"Появилась новая заявка на консультацию. \r\nСуть заявки: {consultation.Question}\r\nКонтакты: {user.Phone} ({user.Name})");
+            await botClient.SendTextMessageAsync(325536109, $"Появилась новая заявка на консультацию. \r\nСуть заявки: {consultation.Question}\r\nКонтакты: {(user == null ? "не предоставлены" : $"{user.Phone} ({user.Name})")}");
         }
     }
 }

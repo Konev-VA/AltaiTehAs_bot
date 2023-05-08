@@ -46,5 +46,14 @@ namespace AltaiTehAs_bot
             using (IDbConnection db = new SqliteConnection(_connectionString))
                 await db.ExecuteAsync(query, new { consultation.Question, consultation.Id });
         }
+
+        public async Task<IEnumerable<Consultation>> GetConsultations()
+        {
+            string query = "select * from consultations";
+
+            using IDbConnection db = new SqliteConnection(_connectionString);
+
+            return await db.QueryAsync<Consultation>(query);
+        }
     }
 }
