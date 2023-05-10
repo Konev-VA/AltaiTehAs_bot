@@ -61,7 +61,7 @@ namespace AltaiTehAs_bot
                     return;
                 }
 
-                if (message.From.Id == 325536109 && message.Text.ToLower().Equals("заявки"))
+                if (message.From.Id == 831058266 && message.Text.ToLower().Equals("заявки"))
                 {
                     var consultations = await new ConsultationDAL().GetConsultations();
 
@@ -295,7 +295,7 @@ namespace AltaiTehAs_bot
 
             var user = await userDAL.GetUserById(repair.UserId);
 
-            await botClient.SendTextMessageAsync(325536109, $"Появилась новая заявка на ремонт. \r\nВид техники: {repair.TechType}\r\nСуть заявки: {repair.Description}\r\nКонтакты: {(user == null ? "не предоставлены" : $"{user.Phone} ({user.Name})")}");
+            await botClient.SendTextMessageAsync(831058266, $"Появилась новая заявка на ремонт. \r\nВид техники: {repair.TechType}\r\nСуть заявки: {repair.Description}\r\nКонтакты: {(user == null ? "не предоставлены" : $"{user.Phone} ({user.Name})")}");
 
             var smtpClient = new SmtpClient("smtp.gmail.com")
             {
@@ -319,7 +319,7 @@ namespace AltaiTehAs_bot
 
             var user = await userDAL.GetUserById(consultation.UserId);
 
-            await botClient.SendTextMessageAsync(325536109, $"Появилась новая заявка на консультацию. \r\nСуть заявки: {consultation.Question}\r\nКонтакты: {(user == null ? "не предоставлены" : $"{user.Phone} ({user.Name})")}");
+            await botClient.SendTextMessageAsync(831058266, $"Появилась новая заявка на консультацию. \r\nСуть заявки: {consultation.Question}\r\nКонтакты: {(user == null ? "не предоставлены" : $"{user.Phone} ({user.Name})")}");
         }
     }
 }
