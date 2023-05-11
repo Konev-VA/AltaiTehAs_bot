@@ -61,7 +61,7 @@ namespace AltaiTehAs_bot
                     return;
                 }
 
-                if (message.From.Id == 831058266 && message.Text.ToLower().Equals("заявки"))
+                if (message.Text != null && message.From.Id == 831058266 && message.Text.ToLower().Equals("заявки"))
                 {
                     var consultations = await new ConsultationDAL().GetConsultations();
 
